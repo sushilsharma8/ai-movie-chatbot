@@ -1,0 +1,20 @@
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+
+# Environment variables
+.env
+
+# Virtual environment
+venv/
+env/
+
+# Cache files
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# IDE files
+.vscode/
+.idea/
