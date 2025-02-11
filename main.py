@@ -10,12 +10,14 @@ from sqlalchemy import create_engine, Column, String, Integer
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
-
 # Load environment variables
 load_dotenv()
 
 # PostgreSQL (NeonDB) Database Connection
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://neondb_owner:npg_YxEL9V0SrQBR@ep-purple-cloud-a56awla7-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://neondb_owner:npg_YxEL9V0SrQBR@ep-purple-cloud-a56awla7-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require"
+)
 
 # Database setup
 engine = create_engine(DATABASE_URL)
@@ -59,37 +61,46 @@ try:
     print(f"✅ Loaded FAISS index with {index.ntotal} dialogues.")
 except Exception as e:
     print(f"⚠️ Could not load FAISS index: {e}")
-    index = faiss.IndexFlatL2(1536)  # Create a new FAISS index if loading fails
+    # Use cosine similarity for better text matching
+    index = faiss.IndexFlatIP(1536)
     database = []
 
-# Function to convert text into vector embeddings
+# Function to normalize vectors
+def normalize(vec):
+    norm = np.linalg.norm(vec)
+    if norm == 0:
+        return vec
+    return vec / norm
+
+# Function to convert text into vector embeddings (with normalization)
 def get_embedding(text):
     response = openai_client.embeddings.create(
         input=text,
         model="text-embedding-ada-002"
     )
-    return np.array(response.data[0].embedding, dtype=np.float32)
+    vec = np.array(response.data[0].embedding, dtype=np.float32)
+    return normalize(vec)
 
 # Function to fetch movie script dialogue from NeonDB
 def get_script_dialogue(db: Session, character: str):
     script = db.query(MovieScript).filter(MovieScript.character == character).first()
     return script.dialogue if script else None
 
-# Function to search for the closest matching dialogue in FAISS
+# Function to search for the closest matching dialogue in FAISS using cosine similarity
 def search_faiss(query):
-    if len(database) == 0:  # Check if FAISS is populated
+    if len(database) == 0:
         print("❌ FAISS is empty! No movie scripts found.")
         return None
 
-    query_embedding = get_embedding(query)  # Convert user input to vector
+    query_embedding = get_embedding(query)
     distances, idx = index.search(np.array([query_embedding]), 5)  # Retrieve top 5 matches
 
     print(f"🔍 FAISS Search Results - Distances: {distances[0]}, Indexes: {idx[0]}")
 
-    # Choose the best match based on a distance threshold
+    # Adjusted threshold for better response accuracy
     best_match = None
     for i, distance in enumerate(distances[0]):
-        if distance < 0.2:  # Adjust the threshold for better results
+        if distance < 0.40:  # More flexible threshold
             best_match = database[idx[0][i]]
             break
 
@@ -97,10 +108,8 @@ def search_faiss(query):
         print(f"✅ FAISS found a good match: {best_match}")
         return best_match
     else:
-        print("❌ No close match found in FAISS. Falling back to OpenAI.")
-        return None  # No match found
-
-
+        print("⚠️ No exact match found, returning the closest available script dialogue.")
+        return database[idx[0][0]]  # Always return the best available match
 
 
 # Request model for chat endpoint
@@ -112,24 +121,31 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 async def chat(request: ChatRequest, db: Session = Depends(get_db)):
     try:
-        # First, search for the most relevant dialogue using FAISS
         script_response = search_faiss(request.user_message)
 
         if script_response:
-            return {"response": script_response}  # Return the best-matching dialogue
-
-        # If no match is found, fall back to OpenAI
-        response = openai_client.chat.completions.create(
-            model="gpt-4",
-            messages=[
+            messages = [
+                {"role": "system", "content": f"You are {request.character}. Here’s a movie dialogue you’ve said before: \"{script_response}\""},
+                {"role": "user", "content": request.user_message}
+            ]
+        else:
+            messages = [
                 {"role": "system", "content": f"You are {request.character}."},
                 {"role": "user", "content": request.user_message}
             ]
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=messages
         )
         return {"response": response.choices[0].message.content}
 
+    except openai.OpenAIError as e:
+        return {"error": f"OpenAI API error: {str(e)}"}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"Unexpected error: {str(e)}"}
+
+
 
 # Run server only if script is executed directly
 if __name__ == "__main__":
