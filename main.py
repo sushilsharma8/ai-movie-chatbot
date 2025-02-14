@@ -9,7 +9,7 @@ import numpy as np
 import pickle
 import redis
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, String, Integer, text
+from sqlalchemy import create_engine, Column, String, Integer, text, DateTime, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from slowapi import Limiter
@@ -17,6 +17,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import hashlib
 import json
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Load environment variables
 load_dotenv()
@@ -57,7 +58,7 @@ Base = declarative_base()
 # OpenAI client
 openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Cache models
+# FAISS Cache
 class FaissCache:
     @staticmethod
     def get_key(query: str) -> str:
@@ -80,27 +81,30 @@ class ChatCache:
 
     def set(self, character: str, message: str, response: str):
         redis_client.setex(self.get_key(character, message), 21600, response)  # 6 hours TTL
-        self._store_history(character, message, response)
-
-    def _store_history(self, character: str, message: str, response: str):
-        history_key = f"history:{character}"
-        redis_client.lpush(history_key, json.dumps({"message": message, "response": response}))
-        redis_client.ltrim(history_key, 0, 4)  # Keep last 5 items
 
 faiss_cache = FaissCache()
 chat_cache = ChatCache()
 
-# Database model
+# Database Models
 class MovieScript(Base):
     __tablename__ = "movie_scripts"
     id = Column(Integer, primary_key=True, index=True)
     character = Column(String, index=True)
     dialogue = Column(String)
 
-# Create database tables
+class ChatHistory(Base):
+    __tablename__ = "chat_history"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True)  # User identifier
+    character = Column(String)
+    user_message = Column(String)
+    bot_response = Column(String)
+    timestamp = Column(DateTime, default=func.now())
+
+# Create tables
 Base.metadata.create_all(bind=engine)
 
-# Dependency to get database session
+# Dependency for DB session
 def get_db():
     db = SessionLocal()
     try:
@@ -108,7 +112,7 @@ def get_db():
     finally:
         db.close()
 
-# FAISS initialization (same as before)
+# FAISS initialization
 try:
     index = faiss.read_index("faiss_index.bin")
     with open("database.pkl", "rb") as f:
@@ -117,14 +121,14 @@ except:
     index = faiss.IndexFlatIP(1536)
     database = []
 
-# Function to normalize vectors
+# Normalize vectors
 def normalize(vec):
     norm = np.linalg.norm(vec)
     if norm == 0:
         return vec
     return vec / norm
 
-# Function to convert text into vector embeddings (with normalization)
+# Convert text to vector embedding
 def get_embedding(text):
     response = openai_client.embeddings.create(
         input=text,
@@ -133,7 +137,7 @@ def get_embedding(text):
     vec = np.array(response.data[0].embedding, dtype=np.float32)
     return normalize(vec)
 
-# Function to search for the closest matching dialogue in FAISS
+# FAISS search
 def search_faiss(query):
     if len(database) == 0:
         print("❌ FAISS is empty! No movie scripts found.")
@@ -146,7 +150,7 @@ def search_faiss(query):
 
     best_match = None
     for i, distance in enumerate(distances[0]):
-        if distance < 0.40:  # More flexible threshold
+        if distance < 0.40:
             best_match = database[idx[0][i]]
             break
 
@@ -157,21 +161,39 @@ def search_faiss(query):
         print("⚠️ No exact match found, returning the closest available script dialogue.")
         return database[idx[0][0]]  # Always return the best available match
 
-# Request model for chat endpoint
+# Request model
 class ChatRequest(BaseModel):
+    user_id: str
     character: str
     user_message: str
 
-# Chat API endpoint
+Instrumentator().instrument(app).expose(app)
+
+# Store chat history
+def save_chat_history(db: Session, user_id: str, character: str, user_message: str, bot_response: str):
+    chat_entry = ChatHistory(
+        user_id=user_id,
+        character=character,
+        user_message=user_message,
+        bot_response=bot_response
+    )
+    db.add(chat_entry)
+    db.commit()
+
+# Retrieve chat history
+@app.get("/chat-history/{user_id}")
+def get_chat_history(user_id: str, db: Session = Depends(get_db)):
+    history = db.query(ChatHistory).filter(ChatHistory.user_id == user_id).order_by(ChatHistory.timestamp.desc()).limit(10).all()
+    return [{"character": chat.character, "user_message": chat.user_message, "bot_response": chat.bot_response, "timestamp": chat.timestamp} for chat in history]
+
+# Chat API
 @app.post("/chat")
 @limiter.limit("5/second")
 def chat(request: Request, chat_data: ChatRequest, db: Session = Depends(get_db)):
-    # Check cache first
     cached_response = chat_cache.get(chat_data.character, chat_data.user_message)
     if cached_response:
         return {"response": cached_response}
 
-    # Process query
     try:
         script_response = search_faiss(chat_data.user_message)
         messages = [
@@ -179,7 +201,6 @@ def chat(request: Request, chat_data: ChatRequest, db: Session = Depends(get_db)
             {"role": "user", "content": chat_data.user_message}
         ]
 
-        # OpenAI call
         response = openai_client.chat.completions.create(
             model="gpt-4",
             messages=messages
@@ -187,6 +208,7 @@ def chat(request: Request, chat_data: ChatRequest, db: Session = Depends(get_db)
         
         result = response.choices[0].message.content
         chat_cache.set(chat_data.character, chat_data.user_message, result)
+        save_chat_history(db, chat_data.user_id, chat_data.character, chat_data.user_message, result)  # Save chat history
         return {"response": result}
 
     except openai.OpenAIError as e:
@@ -194,7 +216,7 @@ def chat(request: Request, chat_data: ChatRequest, db: Session = Depends(get_db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Health check endpoint
+# Health check
 @app.get("/health")
 def health_check():
     return {
