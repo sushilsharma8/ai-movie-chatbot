@@ -37,12 +37,19 @@ app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, lambda _, __: HTTPException(status_code=429, detail="Too many requests"))
 
+# ✅ Add your Netlify frontend URL here
+origins = [
+    "https://ai-movie-chatbot.vercel.app",  # Replace with your actual Netlify URL
+    "http://localhost:3000",  # If testing locally
+]
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=origins,  # ✅ Only allow specific origins
+    allow_credentials=True,
+    allow_methods=["*"],  # ✅ Allow all HTTP methods
+    allow_headers=["*"],  # ✅ Allow all headers
 )
 
 # PostgreSQL (NeonDB) Database Connection
