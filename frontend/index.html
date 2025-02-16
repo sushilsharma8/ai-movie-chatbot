@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Movie Chatbot</title>
+    <title>AI Movie Character Chatbot</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white flex justify-center items-center h-screen">
     <div class="w-full max-w-2xl bg-gray-800 p-6 rounded-lg shadow-lg">
-        <h2 class="text-2xl font-bold mb-4 text-center">🎬 AI Movie Chatbot</h2>
+        <h2 class="text-2xl font-bold mb-4 text-center">AI Movie Chatbot</h2>
         
         <!-- Character Selection -->
         <label class="block text-gray-400">Select or Type a Character:</label>
@@ -18,7 +18,7 @@
                 <option value="Thor">Thor</option>
                 <option value="Captain America">Captain America</option>
                 <option value="Hulk">Hulk</option>
-                <option value="Black Widow">Black Widow</option>
+                <option value="Doctor Strange">Doctor Strange</option>
             </select>
             <input id="customCharacter" type="text" placeholder="Or type a character" class="w-1/2 p-2 bg-gray-700 border border-gray-600 rounded">
         </div>
@@ -46,7 +46,7 @@
             chatBox.innerHTML += `<div class='text-right text-blue-400 mb-2'>You: ${userMessage}</div>`;
             document.getElementById('userMessage').value = '';
             
-            const response = await fetch('/api/chat', {  // ✅ Updated API path for Vercel
+            const response = await fetch('https://ai-movie-chatbot.vercel.app/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: 'user123', character, user_message: userMessage })
@@ -54,8 +54,6 @@
             
             const data = await response.json();
             chatBox.innerHTML += `<div class='text-left text-green-400 mb-2'>${character}: ${data.response}</div>`;
-            
-            // ✅ Auto-scroll to the latest message
             chatBox.scrollTop = chatBox.scrollHeight;
         }
     </script>
