@@ -3,6 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import openai
+import google.generativeai as genai
 import os
 import faiss
 import numpy as np
@@ -55,8 +56,15 @@ engine = create_engine(DATABASE_URL, pool_size=20, max_overflow=10)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
 
-# OpenAI client
-openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# API Clients: OpenAI + Gemini
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not OPENAI_API_KEY or not GEMINI_API_KEY:
+    raise ValueError("Missing API Keys. Add OpenAI & Gemini keys in .env file.")
+
+openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
 
 # FAISS Cache
 class FaissCache:
@@ -130,36 +138,65 @@ def normalize(vec):
 
 # Convert text to vector embedding
 def get_embedding(text):
-    response = openai_client.embeddings.create(
-        input=text,
-        model="text-embedding-ada-002"
-    )
-    vec = np.array(response.data[0].embedding, dtype=np.float32)
-    return normalize(vec)
+    try:
+        model = genai.GenerativeModel("gemini-pro-embed")
+        response = model.embed_content(text)
+        return np.array(response["embedding"], dtype=np.float32)
+    except Exception:
+        return None  # If Gemini fails, return None
 
 # FAISS search
 def search_faiss(query):
     if len(database) == 0:
-        print("❌ FAISS is empty! No movie scripts found.")
         return None
 
     query_embedding = get_embedding(query)
-    distances, idx = index.search(np.array([query_embedding]), 5)  # Retrieve top 5 matches
+    if query_embedding is None:
+        return None  # If embedding failed, return None
 
-    print(f"🔍 FAISS Search Results - Distances: {distances[0]}, Indexes: {idx[0]}")
+    distances, idx = index.search(np.array([query_embedding]), 5)
+    return database[idx[0][0]] if distances[0][0] < 0.40 else None
 
-    best_match = None
-    for i, distance in enumerate(distances[0]):
-        if distance < 0.40:
-            best_match = database[idx[0][i]]
-            break
+def get_gemini_response(character, user_message, script_response):
+    try:
+        model = genai.GenerativeModel("gemini-pro")
+        
+        # ✅ Corrected message format
+        messages = [
+            {"role": "user", "parts": [{"text": f"You are {character}. Previous line: {script_response}"}]},
+            {"role": "user", "parts": [{"text": user_message}]}
+        ]
+        
+        response = model.generate_content(messages)
 
-    if best_match:
-        print(f"✅ FAISS found a good match: {best_match}")
-        return best_match
-    else:
-        print("⚠️ No exact match found, returning the closest available script dialogue.")
-        return database[idx[0][0]]  # Always return the best available match
+        # ✅ Ensure response is valid before accessing text
+        if response and response.candidates and response.candidates[0].content.parts:
+            return response.candidates[0].content.parts[0].text  # Extract response safely
+        
+        print("⚠️ Gemini returned an empty response.")
+        return None  # Return None if Gemini fails
+
+    except Exception as e:
+        print(f"⚠️ Gemini API failed: {e}")
+        return None  # Prevent crashes by returning None
+
+def get_openai_response(character, user_message, script_response):
+    try:
+        messages = [
+            {"role": "system", "content": f"You are {character}. Previous line: {script_response}"},
+            {"role": "user", "content": user_message}
+        ]
+        response = openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=messages
+        )
+        return response.choices[0].message.content
+    except openai.OpenAIError as e:
+        print(f"⚠️ OpenAI API failed: {e}")
+        if "insufficient_quota" in str(e):
+            return "I'm currently experiencing high demand. Please try again later."
+        return None  # Instead of crashing, return None
+
 
 # Request model
 class ChatRequest(BaseModel):
@@ -169,22 +206,60 @@ class ChatRequest(BaseModel):
 
 Instrumentator().instrument(app).expose(app)
 
-# Store chat history
 def save_chat_history(db: Session, user_id: str, character: str, user_message: str, bot_response: str):
-    chat_entry = ChatHistory(
-        user_id=user_id,
-        character=character,
-        user_message=user_message,
-        bot_response=bot_response
-    )
-    db.add(chat_entry)
-    db.commit()
+    try:
+        # print(f"📝 Attempting to save chat history for user_id: {user_id}")  # ✅ Debug log
+
+        chat_entry = ChatHistory(
+            user_id=user_id,
+            character=character,
+            user_message=user_message,
+            bot_response=bot_response
+        )
+
+        db.add(chat_entry)
+        db.commit()  # ✅ Ensures transaction is committed
+        db.refresh(chat_entry)  # ✅ Refresh to ensure entry is stored
+        # print(f"✅ Chat history saved: {chat_entry.id}")
+
+    except Exception as e:
+        db.rollback()  # ✅ Prevents broken transactions
+        print(f"⚠️ Failed to save chat history: {e}")
+
+
+
 
 # Retrieve chat history
 @app.get("/chat-history/{user_id}")
 def get_chat_history(user_id: str, db: Session = Depends(get_db)):
-    history = db.query(ChatHistory).filter(ChatHistory.user_id == user_id).order_by(ChatHistory.timestamp.desc()).limit(10).all()
-    return [{"character": chat.character, "user_message": chat.user_message, "bot_response": chat.bot_response, "timestamp": chat.timestamp} for chat in history]
+    try:
+        print(f"🔍 Fetching chat history for user_id: {user_id}")  # ✅ Debug log
+
+        history = (
+            db.query(ChatHistory)
+            .filter(ChatHistory.user_id == user_id)
+            .order_by(ChatHistory.timestamp.desc())
+            .limit(10)
+            .all()
+        )
+
+        if not history:
+            print(f"⚠️ No chat history found for user_id: {user_id}")  # ✅ Debug log
+            return {"message": "No chat history found."}
+
+        return [
+            {
+                "character": chat.character,
+                "user_message": chat.user_message,
+                "bot_response": chat.bot_response,
+                "timestamp": chat.timestamp
+            }
+            for chat in history
+        ]
+
+    except Exception as e:
+        print(f"⚠️ Error fetching chat history: {e}")
+        return {"error": "Failed to fetch chat history."}
 
 # Chat API
 @app.post("/chat")
@@ -194,27 +269,27 @@ def chat(request: Request, chat_data: ChatRequest, db: Session = Depends(get_db)
     if cached_response:
         return {"response": cached_response}
 
-    try:
-        script_response = search_faiss(chat_data.user_message)
-        messages = [
-            {"role": "system", "content": f"You are {chat_data.character}. Previous line: {script_response}"},
-            {"role": "user", "content": chat_data.user_message}
-        ]
+    script_response = search_faiss(chat_data.user_message) or "No previous dialogue found."
 
-        response = openai_client.chat.completions.create(
-            model="gpt-4",
-            messages=messages
-        )
-        
-        result = response.choices[0].message.content
-        chat_cache.set(chat_data.character, chat_data.user_message, result)
-        save_chat_history(db, chat_data.user_id, chat_data.character, chat_data.user_message, result)  # Save chat history
-        return {"response": result}
+    # ✅ Try Gemini first
+    result = get_gemini_response(chat_data.character, chat_data.user_message, script_response)
+    
+    # ✅ If Gemini fails, try OpenAI
+    if not result:
+        result = get_openai_response(chat_data.character, chat_data.user_message, script_response)
 
-    except openai.OpenAIError as e:
-        raise HTTPException(status_code=503, detail=f"OpenAI error: {e}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # ✅ If both fail, return a fallback message
+    if not result:
+        result = "I'm currently unable to generate a response. Please try again later."
+
+    # ✅ Log Chat History Saving
+    # print(f"📝 Saving chat history for user_id: {chat_data.user_id}")  # ✅ Debug log
+    save_chat_history(db, chat_data.user_id, chat_data.character, chat_data.user_message, result)
+
+    # ✅ Cache response to reduce latency
+    chat_cache.set(chat_data.character, chat_data.user_message, result)
+
+    return {"response": result}
 
 # Health check
 @app.get("/health")
@@ -232,16 +307,10 @@ def check_db_connection():
             session.execute(text("SELECT 1"))
             return True
     except Exception as e:
-        print(f"Database connection error: {e}")
+        # print(f"Database connection error: {e}")
         return False
 
 # Run server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        limit_concurrency=1000,
-        timeout_keep_alive=300
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8000)
