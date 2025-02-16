@@ -23,13 +23,18 @@ from prometheus_fastapi_instrumentator import Instrumentator
 # Load environment variables
 load_dotenv()
 
-# Initialize Redis
-redis_client = redis.Redis(
-    host=os.getenv("REDIS_HOST", "localhost"),
-    port=os.getenv("REDIS_PORT", 6379),
-    password=os.getenv("REDIS_PASSWORD"),
-    decode_responses=True
-)
+# Determine Redis connection URL (Railway / Upstash / Local)
+REDIS_URL = os.getenv("REDIS_URL")  # Use full Redis URL if provided
+
+if REDIS_URL:
+    redis_client = redis.from_url(REDIS_URL, decode_responses=True)  # Cloud Redis (Railway / Upstash)
+else:
+    redis_client = redis.Redis(
+        host=os.getenv("REDIS_HOST", "localhost"),
+        port=int(os.getenv("REDIS_PORT", 6379)),
+        password=os.getenv("REDIS_PASSWORD", None),
+        decode_responses=True
+    )  # Local Redis (Docker)
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
