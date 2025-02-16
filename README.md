@@ -1,4 +1,4 @@
-# AI Movie Chatbot - Backend
+[AI Movie Character Chatbot - Avengers- Endgame Test Cases.postman_collection.json](https://github.com/user-attachments/files/18815931/AI.Movie.Character.Chatbot.-.Avengers-.Endgame.Test.Cases.postman_collection.json)# AI Movie Chatbot - Backend
 
 ## 📌 Overview
 
@@ -142,7 +142,337 @@ The backend provides the following API endpoints:
 }
 ```
 
----
+---[Uploading AI {
+	"info": {
+		"_postman_id": "2aacfcae-c299-4729-9f00-fc1715091a2f",
+		"name": "AI Movie Character Chatbot - Avengers: Endgame Test Cases",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "37069919"
+	},
+	"item": [
+		{
+			"name": "Iron Man - Do you think we can really und...",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"user001\",\n    \"character\": \"Iron Man\",\n    \"user_message\": \"Do you think we can really undo the Snap?\"\n}"
+				},
+				"url": {
+					"raw": "https://ai-movie-chatbot-production.up.railway.app/chat",
+					"protocol": "https",
+					"host": [
+						"ai-movie-chatbot-production",
+						"up",
+						"railway",
+						"app"
+					],
+					"path": [
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Captain America - How do we bring everyone back?...",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"user002\",\n    \"character\": \"Captain America\",\n    \"user_message\": \"How do we bring everyone back?\"\n}"
+				},
+				"url": {
+					"raw": "https://ai-movie-chatbot-production.up.railway.app/chat",
+					"protocol": "https",
+					"host": [
+						"ai-movie-chatbot-production",
+						"up",
+						"railway",
+						"app"
+					],
+					"path": [
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Thanos - Do you regret what you did?...",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"user003\",\n    \"character\": \"Thanos\",\n    \"user_message\": \"Do you regret what you did?\"\n}"
+				},
+				"url": {
+					"raw": "https://ai-movie-chatbot-production.up.railway.app/chat",
+					"protocol": "https",
+					"host": [
+						"ai-movie-chatbot-production",
+						"up",
+						"railway",
+						"app"
+					],
+					"path": [
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Thor - I failed to stop Thanos. How d...",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"user004\",\n    \"character\": \"Thor\",\n    \"user_message\": \"I failed to stop Thanos. How do I fix this?\"\n}"
+				},
+				"url": {
+					"raw": "https://ai-movie-chatbot-production.up.railway.app/chat",
+					"protocol": "https",
+					"host": [
+						"ai-movie-chatbot-production",
+						"up",
+						"railway",
+						"app"
+					],
+					"path": [
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Hulk - How did you merge Banner and H...",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"user005\",\n    \"character\": \"Hulk\",\n    \"user_message\": \"How did you merge Banner and Hulk?\"\n}"
+				},
+				"url": {
+					"raw": "https://ai-movie-chatbot-production.up.railway.app/chat",
+					"protocol": "https",
+					"host": [
+						"ai-movie-chatbot-production",
+						"up",
+						"railway",
+						"app"
+					],
+					"path": [
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Black Widow - We’ve lost so much. How do we ...",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"user006\",\n    \"character\": \"Black Widow\",\n    \"user_message\": \"We\\u2019ve lost so much. How do we move forward?\"\n}"
+				},
+				"url": {
+					"raw": "https://ai-movie-chatbot-production.up.railway.app/chat",
+					"protocol": "https",
+					"host": [
+						"ai-movie-chatbot-production",
+						"up",
+						"railway",
+						"app"
+					],
+					"path": [
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Hawkeye - Do you think Nat would be prou...",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"user007\",\n    \"character\": \"Hawkeye\",\n    \"user_message\": \"Do you think Nat would be proud of us?\"\n}"
+				},
+				"url": {
+					"raw": "https://ai-movie-chatbot-production.up.railway.app/chat",
+					"protocol": "https",
+					"host": [
+						"ai-movie-chatbot-production",
+						"up",
+						"railway",
+						"app"
+					],
+					"path": [
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ant-Man - Time travel? Are you serious?...",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"user008\",\n    \"character\": \"Ant-Man\",\n    \"user_message\": \"Time travel? Are you serious?\"\n}"
+				},
+				"url": {
+					"raw": "https://ai-movie-chatbot-production.up.railway.app/chat",
+					"protocol": "https",
+					"host": [
+						"ai-movie-chatbot-production",
+						"up",
+						"railway",
+						"app"
+					],
+					"path": [
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Doctor Strange - Is there really only one way t...",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"user009\",\n    \"character\": \"Doctor Strange\",\n    \"user_message\": \"Is there really only one way this ends?\"\n}"
+				},
+				"url": {
+					"raw": "https://ai-movie-chatbot-production.up.railway.app/chat",
+					"protocol": "https",
+					"host": [
+						"ai-movie-chatbot-production",
+						"up",
+						"railway",
+						"app"
+					],
+					"path": [
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Doctor Strange",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"user009\",\n    \"character\": \"Doctor Strange\",\n    \"user_message\": \"Is there really only one way this ends?\"\n}"
+				},
+				"url": {
+					"raw": "https://ai-movie-chatbot-production.up.railway.app/chat",
+					"protocol": "https",
+					"host": [
+						"ai-movie-chatbot-production",
+						"up",
+						"railway",
+						"app"
+					],
+					"path": [
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/health",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"health"
+					]
+				},
+				"description": "Generated from cURL: curl http://localhost:8000/health"
+			},
+			"response": []
+		}
+	]
+}Movie Character Chatbot - Avengers- Endgame Test Cases.postman_collection.json…]()
+
 
 ## 🛠️ Troubleshooting
 
