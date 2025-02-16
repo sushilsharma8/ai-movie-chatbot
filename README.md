@@ -144,6 +144,14 @@ The backend provides the following API endpoints:
 ### 🔹 **4. Postman Collection**
 [AI Movie Character Chatbot - Avengers- Endgame Test Cases.postman_collection.json](https://github.com/user-attachments/files/18815931/AI.Movie.Character.Chatbot.-.Avengers-.Endgame.Test.Cases.postman_collection.json)
 
+
+## AI Movie Chatbot
+
+![AI Movie Chatbot UI](https://raw.githubusercontent.com/sushilsharma8/ai-movie-chatbot/main/Screenshot1.png)
+
+This is a screenshot of the AI Movie Chatbot in action.
+
+
 ## 🛠️ Troubleshooting
 
 ### **Common Issues & Fixes**
