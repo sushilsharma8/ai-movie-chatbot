@@ -46,7 +46,7 @@
             chatBox.innerHTML += `<div class='text-right text-blue-400 mb-2'>You: ${userMessage}</div>`;
             document.getElementById('userMessage').value = '';
             
-            const response = await fetch('/chat', {  // ✅ Fix API URL
+            const response = await fetch('/api/chat', {  // ✅ Fix API URL
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: 'user123', character, user_message: userMessage })
