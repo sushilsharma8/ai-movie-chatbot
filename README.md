@@ -1,4 +1,4 @@
-[AI Movie Character Chatbot - Avengers- Endgame Test Cases.postman_collection.json](https://github.com/user-attachments/files/18815931/AI.Movie.Character.Chatbot.-.Avengers-.Endgame.Test.Cases.postman_collection.json)# AI Movie Chatbot - Backend
+# AI Movie Chatbot - Backend
 
 ## 📌 Overview
 
@@ -141,7 +141,8 @@ The backend provides the following API endpoints:
   "faiss": true
 }
 ```
-
+### 🔹 **4. Postman Collection**
+[AI Movie Character Chatbot - Avengers- Endgame Test Cases.postman_collection.json](https://github.com/user-attachments/files/18815931/AI.Movie.Character.Chatbot.-.Avengers-.Endgame.Test.Cases.postman_collection.json)
 
 ## 🛠️ Troubleshooting
 
