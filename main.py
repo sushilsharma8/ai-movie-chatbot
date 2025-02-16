@@ -39,7 +39,7 @@ app.add_exception_handler(RateLimitExceeded, lambda _, __: HTTPException(status_
 
 # ✅ Add your Netlify frontend URL here
 origins = [
-    "https://ai-movie-chatbot.vercel.app",  # Replace with your actual Netlify URL
+    "https://dulcet-kataifi-2ea36d.netlify.app",  # Your Netlify URL
     "http://localhost:3000",  # If testing locally
 ]
 
