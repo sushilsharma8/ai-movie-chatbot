@@ -66,23 +66,36 @@ REDIS_PORT=6379
 REDIS_PASSWORD=your_redis_password
 ```
 
-### 5️⃣ **Start Redis Server**
+### 5️⃣ **Scrape Movie Scripts**
+Before running the chatbot, scrape and store movie scripts using:
 
-Ensure Redis is running locally or use a managed Redis service.
+```sh
+python scrape_imsdb.py
+```
+This will fetch movie scripts and store them in the PostgreSQL database.
+
+### 6️⃣ **Populate FAISS Vector Index**
+Once movie scripts are stored, generate embeddings and populate FAISS:
+
+```sh
+python populate_db.py
+```
+This step converts dialogues into vector embeddings and stores them in FAISS for faster retrieval.
+
+### 7️⃣ **Start Redis Server**
+Ensure Redis is running locally or use a cloud-based Redis service:
 
 ```sh
 redis-server
 ```
 
-### 6️⃣ **Run the Backend Locally**
+### 8️⃣ **Run the Backend Locally**
 
 ```sh
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
 The API will be accessible at: **`http://localhost:8000`**
 
----
 
 ## 📖 API Documentation
 
