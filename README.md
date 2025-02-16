@@ -27,7 +27,7 @@ This is the backend service for the AI Movie Chatbot, which allows users to chat
 - **Caching:** Redis
 - **AI Models:** OpenAI GPT-4, Google Gemini
 - **Monitoring:** Prometheus + Grafana
-- **Hosting:** Vercel
+- **Hosting:** Railway
 
 ---
 
